@@ -1,0 +1,15 @@
+##Ignorar archivo .env
+
+.env
+
+##Ignorar archivos de logs
+*.log
+logs/
+
+##Ignorar archivos temporales
+*.tmp
+temp/
+
+##Ignorar archivos de caché
+*.cache
+cache/

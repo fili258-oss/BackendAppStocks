@@ -1,0 +1,46 @@
+services:
+  # CockroachDB - Base de datos principal
+  cockroachdb:
+    image: cockroachdb/cockroach:v23.1.11
+    container_name: stock-analyzer-db
+    ports:
+      - "26257:26257"  # Puerto SQL
+      - "8080:8080"    # Puerto Admin UI
+    command: start-single-node --insecure --store=type=mem,size=2GiB
+    volumes:
+      - cockroach-data:/cockroach/cockroach-data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    environment:
+      - COCKROACH_DATABASE=stock_analyzer
+      - COCKROACH_USER=root
+    networks:
+      - stock-analyzer-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health?ready=1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Adminer - UI para gestionar la base de datos (opcional pero útil)
+  adminer:
+    image: adminer:latest
+    container_name: stock-analyzer-adminer
+    ports:
+      - "8081:8080"
+    environment:
+      - ADMINER_DEFAULT_SERVER=cockroachdb:26257
+      - ADMINER_DESIGN=pepa-linha
+    networks:
+      - stock-analyzer-network
+    depends_on:
+      cockroachdb:
+        condition: service_healthy
+
+networks:
+  stock-analyzer-network:
+    driver: bridge
+
+volumes:
+  cockroach-data:
+    driver: local
