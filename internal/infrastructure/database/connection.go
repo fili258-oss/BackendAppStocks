@@ -7,7 +7,7 @@ import (
 	"time"
 
 	_ "github.com/lib/pq" // Driver PostgreSQL
-	"github.com/fili258-oss/BackendAppStocks/internal/infrastructure/config"
+	"github.com/marino/stock-analyzer/internal/infrastructure/config"
 )
 
 // Connection representa una conexión a la base de datos

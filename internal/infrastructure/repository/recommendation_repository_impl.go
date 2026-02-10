@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/fili258-oss/BackendAppStocks/internal/domain/entity"
-	"github.com/fili258-oss/BackendAppStocks/internal/domain/repository"
+	"github.com/marino/stock-analyzer/internal/domain/entity"
+	"github.com/marino/stock-analyzer/internal/domain/repository"
 )
 
 // RecommendationRepositoryImpl implementa repository.RecommendationRepository
