@@ -23,6 +23,9 @@ type RecommendationRepository interface {
 	// FindByStockID busca todas las recomendaciones de un stock específico
 	FindByStockID(ctx context.Context, stockID string) ([]*entity.Recommendation, error)
 
+	// FindByStockSymbol busca recomendaciones por el símbolo del stock
+	FindByStockSymbol(ctx context.Context, symbol string) ([]*entity.Recommendation, error)
+
 	// FindByType busca recomendaciones por tipo (BUY, SELL, etc.)
 	FindByType(ctx context.Context, recType entity.RecommendationType, limit int) ([]*entity.Recommendation, error)
 

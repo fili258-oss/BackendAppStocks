@@ -2,10 +2,10 @@ package handler
 
 import (
 	"net/http"
-	"strconv"
+	
 
 	"github.com/gin-gonic/gin"
-	"github.com/marino/stock-analyzer/internal/api"
+	"github.com/marino/stock-analyzer/internal/api/common"
 	"github.com/marino/stock-analyzer/internal/application/usecase"
 	"github.com/marino/stock-analyzer/internal/domain/entity"
 	"github.com/marino/stock-analyzer/internal/domain/repository"
@@ -34,17 +34,17 @@ func NewRecommendationHandler(
 func (h *RecommendationHandler) GenerateRecommendations(c *gin.Context) {
 	var request usecase.GenerateRecommendationsRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
-		api.ValidationErrorResponse(c, err.Error())
+		common.ValidationErrorResponse(c, err.Error())
 		return
 	}
 
 	response, err := h.generateUC.Execute(c.Request.Context(), request)
 	if err != nil {
-		api.InternalErrorResponse(c, err)
+		common.InternalErrorResponse(c, err)
 		return
 	}
 
-	api.SuccessResponse(c, http.StatusOK, response)
+	common.SuccessResponse(c, http.StatusOK, response)
 }
 
 // GetTopRecommendations obtiene las mejores recomendaciones
@@ -57,11 +57,11 @@ func (h *RecommendationHandler) GetTopRecommendations(c *gin.Context) {
 
 	recommendations, err := h.recRepo.FindTopRecommendations(c.Request.Context(), limit)
 	if err != nil {
-		api.InternalErrorResponse(c, err)
+		common.InternalErrorResponse(c, err)
 		return
 	}
 
-	api.SuccessResponse(c, http.StatusOK, gin.H{
+	common.SuccessResponse(c, http.StatusOK, gin.H{
 		"recommendations": recommendations,
 		"count":           len(recommendations),
 	})
@@ -72,17 +72,17 @@ func (h *RecommendationHandler) GetTopRecommendations(c *gin.Context) {
 func (h *RecommendationHandler) GetRecommendationsByStock(c *gin.Context) {
 	symbol := c.Param("symbol")
 	if symbol == "" {
-		api.ValidationErrorResponse(c, "Symbol is required")
+		common.ValidationErrorResponse(c, "Symbol is required")
 		return
 	}
 
 	recommendations, err := h.recRepo.FindByStockSymbol(c.Request.Context(), symbol)
 	if err != nil {
-		api.InternalErrorResponse(c, err)
+		common.InternalErrorResponse(c, err)
 		return
 	}
 
-	api.SuccessResponse(c, http.StatusOK, gin.H{
+	common.SuccessResponse(c, http.StatusOK, gin.H{
 		"symbol":          symbol,
 		"recommendations": recommendations,
 		"count":           len(recommendations),
@@ -104,17 +104,17 @@ func (h *RecommendationHandler) GetRecommendationsByType(c *gin.Context) {
 	}
 
 	if !validTypes[recType] {
-		api.ValidationErrorResponse(c, "Invalid recommendation type. Valid: BUY, SELL, HOLD, STRONG_BUY")
+		common.ValidationErrorResponse(c, "Invalid recommendation type. Valid: BUY, SELL, HOLD, STRONG_BUY")
 		return
 	}
 
 	recommendations, err := h.recRepo.FindByType(c.Request.Context(), entity.RecommendationType(recType), limit)
 	if err != nil {
-		api.InternalErrorResponse(c, err)
+		common.InternalErrorResponse(c, err)
 		return
 	}
 
-	api.SuccessResponse(c, http.StatusOK, gin.H{
+	common.SuccessResponse(c, http.StatusOK, gin.H{
 		"type":            recType,
 		"recommendations": recommendations,
 		"count":           len(recommendations),
@@ -128,11 +128,11 @@ func (h *RecommendationHandler) GetValidRecommendations(c *gin.Context) {
 
 	recommendations, err := h.recRepo.FindValidRecommendations(c.Request.Context(), limit)
 	if err != nil {
-		api.InternalErrorResponse(c, err)
+		common.InternalErrorResponse(c, err)
 		return
 	}
 
-	api.SuccessResponse(c, http.StatusOK, gin.H{
+	common.SuccessResponse(c, http.StatusOK, gin.H{
 		"recommendations": recommendations,
 		"count":           len(recommendations),
 	})
@@ -161,5 +161,5 @@ func (h *RecommendationHandler) GetRecommendationStats(c *gin.Context) {
 		},
 	}
 
-	api.SuccessResponse(c, http.StatusOK, stats)
+	common.SuccessResponse(c, http.StatusOK, stats)
 }

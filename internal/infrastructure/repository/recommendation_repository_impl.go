@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/marino/stock-analyzer/internal/domain/entity"
-	"github.com/marino/stock-analyzer/internal/domain/repository"
+	"github.com/marino/stock-analyzer/internal/domain/entity"	
+	domainRepo "github.com/marino/stock-analyzer/internal/domain/repository"
 )
 
 // RecommendationRepositoryImpl implementa repository.RecommendationRepository
@@ -17,8 +17,8 @@ type RecommendationRepositoryImpl struct {
 	db *sql.DB
 }
 
-// NewRecommendationRepository crea una nueva instancia de RecommendationRepositoryImpl
-func NewRecommendationRepository(db *sql.DB) repository.RecommendationRepository {
+// NewRecommendationRepository crea una nueva instancia del repositorio
+func NewRecommendationRepository(db *sql.DB) domainRepo.RecommendationRepository {
 	return &RecommendationRepositoryImpl{db: db}
 }
 
@@ -173,6 +173,19 @@ func (r *RecommendationRepositoryImpl) FindByStockID(ctx context.Context, stockI
 	defer rows.Close()
 
 	return r.scanRecommendations(rows)
+}
+
+// FindByStockSymbol busca recomendaciones por símbolo de stock
+func (r *RecommendationRepositoryImpl) FindByStockSymbol(ctx context.Context, symbol string) ([]*entity.Recommendation, error) {
+	query := `
+		SELECT id, stock_id, stock_symbol, type, score, confidence, reason,
+			   metrics, strategy, valid_until, created_at, updated_at
+		FROM recommendations
+		WHERE stock_symbol = $1
+		ORDER BY score DESC
+	`
+
+	return r.queryRecommendations(ctx, query, symbol)
 }
 
 // FindByType busca recomendaciones por tipo
@@ -410,4 +423,48 @@ func (r *RecommendationRepositoryImpl) scanRecommendations(rows *sql.Rows) ([]*e
 	}
 
 	return recommendations, nil
+}
+
+// queryRecommendations helper para ejecutar queries que retornan múltiples recomendaciones
+func (r *RecommendationRepositoryImpl) queryRecommendations(ctx context.Context, query string, args ...interface{}) ([]*entity.Recommendation, error) {
+	rows, err := r.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var recommendations []*entity.Recommendation
+
+	for rows.Next() {
+		rec := &entity.Recommendation{}
+		var metricsJSON []byte
+
+		err := rows.Scan(
+			&rec.ID,
+			&rec.StockID,
+			&rec.StockSymbol,
+			&rec.Type,
+			&rec.Score,
+			&rec.Confidence,
+			&rec.Reason,
+			&metricsJSON,
+			&rec.Strategy,
+			&rec.ValidUntil,
+			&rec.CreatedAt,
+			&rec.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(metricsJSON) > 0 {
+			if err := json.Unmarshal(metricsJSON, &rec.Metrics); err != nil {
+				return nil, fmt.Errorf("error unmarshaling metrics: %w", err)
+			}
+		}
+
+		recommendations = append(recommendations, rec)
+	}
+
+	return recommendations, rows.Err()
 }

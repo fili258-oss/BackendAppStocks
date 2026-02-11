@@ -1,7 +1,5 @@
 package external
 
-
-
 // FinnhubQuoteResponse respuesta del endpoint /quote
 // Contiene precio actual y cambios
 type FinnhubQuoteResponse struct {

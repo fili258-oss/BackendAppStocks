@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/marino/stock-analyzer/internal/api"
+	"github.com/marino/stock-analyzer/internal/api/common"
 	"github.com/marino/stock-analyzer/internal/application/dto"
 	"github.com/marino/stock-analyzer/internal/application/usecase"
 	"github.com/marino/stock-analyzer/internal/domain/entity"
@@ -42,21 +42,21 @@ func NewStockHandler(
 func (h *StockHandler) GetStock(c *gin.Context) {
 	symbol := c.Param("symbol")
 	if symbol == "" {
-		api.ValidationErrorResponse(c, "Symbol is required")
+		common.ValidationErrorResponse(c, "Symbol is required")
 		return
 	}
 
 	stock, err := h.detailsUC.Execute(c.Request.Context(), symbol)
 	if err != nil {
 		if err == entity.ErrStockNotFound {
-			api.NotFoundResponse(c, "Stock")
+			common.NotFoundResponse(c, "Stock")
 			return
 		}
-		api.InternalErrorResponse(c, err)
+		common.InternalErrorResponse(c, err)
 		return
 	}
 
-	api.SuccessResponse(c, http.StatusOK, stock)
+	common.SuccessResponse(c, http.StatusOK, stock)
 }
 
 // SearchStocks busca stocks con filtros
@@ -97,19 +97,19 @@ func (h *StockHandler) SearchStocks(c *gin.Context) {
 	// Ejecutar búsqueda
 	response, err := h.searchUC.Execute(c.Request.Context(), request)
 	if err != nil {
-		api.InternalErrorResponse(c, err)
+		common.InternalErrorResponse(c, err)
 		return
 	}
 
 	// Calcular metadata de paginación
-	meta := &api.MetaInfo{
+	meta := &common.MetaInfo{
 		Page:       (request.Offset / request.Limit) + 1,
 		PageSize:   request.Limit,
 		TotalItems: response.Total,
 		TotalPages: (response.Total + request.Limit - 1) / request.Limit,
 	}
 
-	api.SuccessResponseWithMeta(c, http.StatusOK, response.Stocks, meta)
+	common.SuccessResponseWithMeta(c, http.StatusOK, response.Stocks, meta)
 }
 
 // FetchStocks trae stocks desde la API externa
@@ -118,22 +118,22 @@ func (h *StockHandler) SearchStocks(c *gin.Context) {
 func (h *StockHandler) FetchStocks(c *gin.Context) {
 	var request dto.FetchStocksRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
-		api.ValidationErrorResponse(c, err.Error())
+		common.ValidationErrorResponse(c, err.Error())
 		return
 	}
 
 	if len(request.Symbols) == 0 {
-		api.ValidationErrorResponse(c, "Symbols array is required")
+		common.ValidationErrorResponse(c, "Symbols array is required")
 		return
 	}
 
 	response, err := h.fetchUC.Execute(c.Request.Context(), request)
 	if err != nil {
-		api.InternalErrorResponse(c, err)
+		common.InternalErrorResponse(c, err)
 		return
 	}
 
-	api.SuccessResponse(c, http.StatusOK, response)
+	common.SuccessResponse(c, http.StatusOK, response)
 }
 
 // UpdateStocks actualiza stocks existentes
@@ -142,17 +142,17 @@ func (h *StockHandler) FetchStocks(c *gin.Context) {
 func (h *StockHandler) UpdateStocks(c *gin.Context) {
 	var request dto.UpdateStocksRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
-		api.ValidationErrorResponse(c, err.Error())
+		common.ValidationErrorResponse(c, err.Error())
 		return
 	}
 
 	response, err := h.updateUC.Execute(c.Request.Context(), request)
 	if err != nil {
-		api.InternalErrorResponse(c, err)
+		common.InternalErrorResponse(c, err)
 		return
 	}
 
-	api.SuccessResponse(c, http.StatusOK, response)
+	common.SuccessResponse(c, http.StatusOK, response)
 }
 
 // SyncStocks sincroniza stocks en batch
@@ -161,22 +161,22 @@ func (h *StockHandler) UpdateStocks(c *gin.Context) {
 func (h *StockHandler) SyncStocks(c *gin.Context) {
 	var request dto.SyncStocksRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
-		api.ValidationErrorResponse(c, err.Error())
+		common.ValidationErrorResponse(c, err.Error())
 		return
 	}
 
 	if len(request.Symbols) == 0 {
-		api.ValidationErrorResponse(c, "Symbols array is required")
+		common.ValidationErrorResponse(c, "Symbols array is required")
 		return
 	}
 
 	response, err := h.syncUC.Execute(c.Request.Context(), request)
 	if err != nil {
-		api.InternalErrorResponse(c, err)
+		common.InternalErrorResponse(c, err)
 		return
 	}
 
-	api.SuccessResponse(c, http.StatusOK, response)
+	common.SuccessResponse(c, http.StatusOK, response)
 }
 
 // parseIntQuery helper para parsear query params enteros
