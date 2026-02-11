@@ -8,10 +8,27 @@ import (
 type RecommendationType string
 
 const (
-	RecommendationTypeBuy    RecommendationType = "BUY"
-	RecommendationTypeHold   RecommendationType = "HOLD"
-	RecommendationTypeSell   RecommendationType = "SELL"
-	RecommendationTypeStrong RecommendationType = "STRONG_BUY"
+	RecommendationBuy       RecommendationType = "BUY"
+	RecommendationHold      RecommendationType = "HOLD"
+	RecommendationSell      RecommendationType = "SELL"
+	RecommendationStrongBuy RecommendationType = "STRONG_BUY"
+	
+	// Aliases para compatibilidad
+	RecommendationTypeBuy    = RecommendationBuy
+	RecommendationTypeHold   = RecommendationHold
+	RecommendationTypeSell   = RecommendationSell
+	RecommendationTypeStrong = RecommendationStrongBuy
+)
+
+// StrategyType define los tipos de estrategia de análisis
+type StrategyType string
+
+const (
+	StrategyBalanced StrategyType = "BALANCED"
+	StrategyMomentum StrategyType = "MOMENTUM"
+	StrategyValue    StrategyType = "VALUE"
+	StrategyDividend StrategyType = "DIVIDEND"
+	StrategyGrowth   StrategyType = "GROWTH"
 )
 
 // Recommendation representa una recomendación de inversión para un stock
@@ -63,13 +80,13 @@ func NewRecommendation(stockID, stockSymbol, strategy string, score float64) (*R
 func determineRecommendationType(score float64) RecommendationType {
 	switch {
 	case score >= 80:
-		return RecommendationTypeStrong
+		return RecommendationStrongBuy
 	case score >= 60:
-		return RecommendationTypeBuy
+		return RecommendationBuy
 	case score >= 40:
-		return RecommendationTypeHold
+		return RecommendationHold
 	default:
-		return RecommendationTypeSell
+		return RecommendationSell
 	}
 }
 
@@ -106,6 +123,18 @@ func (r *Recommendation) AddMetric(name string, value float64) {
 	r.Metrics[name] = value
 }
 
+// SetConfidence establece el nivel de confianza de la recomendación
+func (r *Recommendation) SetConfidence(confidence float64) {
+	if confidence < 0 {
+		confidence = 0
+	}
+	if confidence > 1 {
+		confidence = 1
+	}
+	r.Confidence = confidence
+	r.UpdatedAt = time.Now()
+}
+
 // SetReason establece la razón de la recomendación
 func (r *Recommendation) SetReason(reason string) error {
 	if reason == "" {
@@ -123,7 +152,7 @@ func (r *Recommendation) IsValid() bool {
 
 // IsBuyRecommendation verifica si es una recomendación de compra
 func (r *Recommendation) IsBuyRecommendation() bool {
-	return r.Type == RecommendationTypeBuy || r.Type == RecommendationTypeStrong
+	return r.Type == RecommendationBuy || r.Type == RecommendationStrongBuy
 }
 
 // Validate verifica que la recomendación tenga datos válidos
