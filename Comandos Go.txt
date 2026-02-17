@@ -1,0 +1,153 @@
+Comandos Go
+
+Inicializar un módulo:
+go mod init example.com/day
+
+Sostituir comando en modulos:
+go mod edit -replace example.com/greetings=../greetings
+
+Syncronizar dependencias, añadir dependencias que requiere el código, pero que aún no se han registrado en el código
+go mod tidy
+
+Comandos Docker
+
+Para levantar servicios:
+docker compose up -d
+
+Detener servicios:
+docker compose stop
+
+Reiniciar servcios:
+docker compose restart
+
+Eliminar Contenedores (mantiene datos)
+docker compose down
+
+Eliminar TODO (¡CUIDADO! borra datos)
+docker compose down -v
+
+Ver estado de los servicios:
+docker compose ps
+
+Ver todos los logs:
+docker compose logs
+
+Ver logs en tiempo real:
+docker compose logs -f
+
+Ver logs solo de CockroachDB:
+docker compose logs -f cockroachdb
+
+Testear los repositories:
+
+go run scripts/test-repositories.go
+
+Crear base de datos:
+docker exec -it stock-analyzer-db ./cockroach sql --insecure
+
+CREATE DATABASE IF NOT EXISTS stock_analyzer;
+SHOW DATABASES;
+\q
+
+USE stock_analyzer;
+
+Copy and paste:
+CREATE TABLE IF NOT EXISTS stocks (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    symbol VARCHAR(10) NOT NULL UNIQUE,
+    name VARCHAR(255) NOT NULL,
+    exchange VARCHAR(50),
+    currency VARCHAR(10) DEFAULT 'USD',
+    price DECIMAL(18, 4) DEFAULT 0,
+    open_price DECIMAL(18, 4) DEFAULT 0,
+    high_price DECIMAL(18, 4) DEFAULT 0,
+    low_price DECIMAL(18, 4) DEFAULT 0,
+    close_price DECIMAL(18, 4) DEFAULT 0,
+    change DECIMAL(18, 4) DEFAULT 0,
+    change_percent DECIMAL(10, 4) DEFAULT 0,
+    volume BIGINT DEFAULT 0,
+    market_cap DECIMAL(20, 2) DEFAULT 0,
+    pe_ratio DECIMAL(10, 2) DEFAULT 0,
+    dividend_yield DECIMAL(10, 4) DEFAULT 0,
+    week_52_high DECIMAL(18, 4) DEFAULT 0,
+    week_52_low DECIMAL(18, 4) DEFAULT 0,
+    created_at TIMESTAMP DEFAULT current_timestamp(),
+    updated_at TIMESTAMP DEFAULT current_timestamp()
+);
+
+CREATE INDEX IF NOT EXISTS idx_stocks_symbol ON stocks(symbol);
+CREATE INDEX IF NOT EXISTS idx_stocks_name ON stocks(name);
+CREATE INDEX IF NOT EXISTS idx_stocks_exchange ON stocks(exchange);
+CREATE INDEX IF NOT EXISTS idx_stocks_market_cap ON stocks(market_cap DESC);
+CREATE INDEX IF NOT EXISTS idx_stocks_volume ON stocks(volume DESC);
+CREATE INDEX IF NOT EXISTS idx_stocks_updated_at ON stocks(updated_at DESC);
+
+CREATE TYPE IF NOT EXISTS recommendation_type AS ENUM ('BUY', 'SELL', 'HOLD', 'STRONG_BUY');
+
+CREATE TABLE IF NOT EXISTS recommendations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    stock_id UUID NOT NULL,
+    stock_symbol VARCHAR(10) NOT NULL,
+    type recommendation_type NOT NULL,
+    score DECIMAL(5, 2) NOT NULL CHECK (score >= 0 AND score <= 100),
+    confidence DECIMAL(3, 2) NOT NULL CHECK (confidence >= 0 AND confidence <= 1),
+    reason TEXT,
+    strategy VARCHAR(50) NOT NULL,
+    metrics JSONB DEFAULT '{}'::JSONB,
+    valid_until TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT current_timestamp(),
+    updated_at TIMESTAMP DEFAULT current_timestamp(),
+    CONSTRAINT fk_recommendations_stock
+        FOREIGN KEY (stock_id) 
+        REFERENCES stocks(id)
+        ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_recommendations_stock_id ON recommendations(stock_id);
+CREATE INDEX IF NOT EXISTS idx_recommendations_stock_symbol ON recommendations(stock_symbol);
+CREATE INDEX IF NOT EXISTS idx_recommendations_type ON recommendations(type);
+CREATE INDEX IF NOT EXISTS idx_recommendations_score ON recommendations(score DESC);
+CREATE INDEX IF NOT EXISTS idx_recommendations_valid_until ON recommendations(valid_until);
+CREATE INDEX IF NOT EXISTS idx_recommendations_created_at ON recommendations(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_recommendations_strategy ON recommendations(strategy);
+CREATE INDEX IF NOT EXISTS idx_recommendations_stock_created ON recommendations(stock_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_recommendations_metrics ON recommendations USING GIN (metrics);
+
+-----------------------------------------------------------------------
+Sembrar datos en BD Local
+
+# Si es 0, ejecutar:
+go run scripts/test-usecases.go
+go run scripts/test-recommendations.go
+
+# Compilar
+go build -o bin/api cmd/api/main.go
+
+# Si compila correctamente ejecutar para servidor local.
+go run cmd/api/main.go
+
+14 Endpoints funcionales via api.
+
+# Stocks (5 endpoints)
+
+GET /api/v1/stocks/:symbol - Obtener stock
+GET /api/v1/stocks - Buscar con filtros
+POST /api/v1/stocks/fetch - Traer desde Finnhub
+PUT /api/v1/stocks/update - Actualizar
+POST /api/v1/stocks/sync - Sincronizar
+
+Recommendations (6 endpoints)
+POST /api/v1/recommendations/generate - Generar
+GET /api/v1/recommendations/top - Top recomendaciones
+GET /api/v1/recommendations/stock/:symbol - Por stock
+GET /api/v1/recommendations/type/:type - Por tipo
+GET /api/v1/recommendations/valid - Válidas
+GET /api/v1/recommendations/stats - Estadísticas
+
+Utility (2 endpoints)
+
+GET /health - Health check
+GET / - Documentación
+
+# Crear frontend con Vue JSONB
+npm create vite@latest stock-analyzer-frontend -- --template vue-ts
